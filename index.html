@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#08090d">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Echi delle Ceneri">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+
+<title>Echi delle Ceneri — Soulslike 2D</title>
+<style>
+:root{--gold:#d8b773;--blood:#8f2024;--panel:#0b0c12eF}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:none}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#08090d;color:#fff;font-family:Georgia,serif}
+canvas{display:block;width:100vw;height:100dvh}
+#hud{position:fixed;z-index:3;left:12px;right:12px;top:max(8px,env(safe-area-inset-top));display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;text-shadow:0 2px 6px #000}
+.logo{font-size:clamp(10px,2.5vw,15px);letter-spacing:2px;color:var(--gold);font-weight:bold}
+.sub{font:700 9px Arial,sans-serif;color:#d4d0ca;margin-top:4px;letter-spacing:.7px}
+#hearts{display:flex;gap:3px;margin-top:7px}.heart{height:6px;width:clamp(15px,4vw,24px);background:#a32a26;border:1px solid #e37b65;border-radius:4px}.heart.off{background:#29292c;border-color:#555}
+#soulbox{text-align:right;font:700 10px Arial,sans-serif;color:#f0d7a0;line-height:1.6}
+#bossUI{position:fixed;z-index:3;top:max(66px,calc(env(safe-area-inset-top) + 58px));left:18%;right:18%;text-align:center;pointer-events:none}
+#bossName{font-size:9px;letter-spacing:1.5px;color:#dfc49a;margin-bottom:5px}
+#bossBar{height:6px;border:1px solid #8b6b50;background:#160d0e;border-radius:4px;overflow:hidden}
+#bossFill{height:100%;width:100%;background:linear-gradient(90deg,#510c13,#d33a2b);transition:width .12s}
+#message{position:fixed;z-index:4;left:12px;right:12px;bottom:calc(105px + env(safe-area-inset-bottom));text-align:center;font-size:clamp(10px,2.9vw,14px);letter-spacing:1px;color:#e5c780;text-shadow:0 2px 8px #000;pointer-events:none}
+.controls{position:fixed;z-index:5;left:10px;right:10px;bottom:max(10px,env(safe-area-inset-bottom));display:flex;justify-content:space-between;align-items:flex-end}
+.group{display:flex;gap:7px;align-items:center}
+.btn{width:clamp(45px,13vw,61px);height:clamp(45px,13vw,61px);border-radius:50%;border:1px solid #ffffff55;background:#090a0dcc;color:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;box-shadow:0 4px 15px #0008;user-select:none}
+.btn strong{font:900 18px Arial,sans-serif}.btn small{font:900 6.5px Arial,sans-serif;letter-spacing:.4px;margin-top:3px}
+.btn.attack{background:#4b1115eF;border-color:#b64b3e}.btn.menu{background:#4b3922eF;border-color:#d8b773}
+.btn:active{filter:brightness(1.7);transform:scale(.96)}
+#overlay,#inventory{position:fixed;inset:0;z-index:10;background:#030407e8;display:flex;align-items:center;justify-content:center;padding:22px}
+.panel{width:min(410px,100%);max-height:90dvh;overflow:auto;text-align:center;border:1px solid #826340;background:linear-gradient(#19161b,#08090d);border-radius:14px;padding:23px 19px;box-shadow:0 15px 50px #000}
+h1{font-size:clamp(23px,7vw,34px);letter-spacing:2px;color:var(--gold);margin:0 0 10px}
+p{font-size:13px;line-height:1.5;color:#d4d0cb}
+.start,.itemBtn{border:1px solid #c49a5a;background:#54201b;color:#fff;border-radius:24px;padding:12px 20px;font-weight:bold;letter-spacing:.8px;font-size:11px;margin:5px}
+.hint{font:10px Arial,sans-serif;color:#aaa;margin-top:12px;line-height:1.5}
+.hidden{display:none!important}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:14px 0;text-align:left}
+.item{border:1px solid #4a4034;border-radius:10px;background:#101015;padding:12px}
+.item b{font-size:12px;color:#e6cb8b}.item p{font:11px Arial,sans-serif;margin:7px 0;color:#bbb}.itemBtn{width:100%;padding:9px 4px;margin:0;font-size:10px}
+#levelTag{font:700 9px Arial,sans-serif;color:#d8b773;letter-spacing:1px;margin-top:5px}
+@media(orientation:landscape){#message{bottom:84px}.btn{width:56px;height:56px}#bossUI{top:52px}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud">
+ <div><div class="logo">ECHI DELLE CENERI</div><div class="sub">CAVALIERE SENZA NOME</div><div id="hearts"></div><div id="levelTag">I — ROVINE DI ELDRAEN</div></div>
+ <div id="soulbox">ANIME <span id="soulNum">0</span><br>LV <span id="levelNum">1</span></div>
+</div>
+<div id="bossUI"><div id="bossName">IL CUSTODE DELLE CENERI</div><div id="bossBar"><div id="bossFill"></div></div></div>
+<div id="message">TOCCA IL FALÒ PER PREPARARTI</div>
+<div class="controls">
+ <div class="group"><button class="btn" id="left"><strong>‹</strong><small>SINISTRA</small></button><button class="btn" id="right"><strong>›</strong><small>DESTRA</small></button></div>
+ <div class="group"><button class="btn" id="inventoryBtn"><strong>✦</strong><small>ZAINO</small></button><button class="btn" id="dodge"><strong>↝</strong><small>SCHIVATA</small></button><button class="btn" id="jump"><strong>↑</strong><small>SALTO</small></button><button class="btn attack" id="attack"><strong>⚔</strong><small>ATTACCO</small></button>
+ </div>
+</div>
+<div id="overlay">
+ <div class="panel">
+  <h1 id="overlayTitle">ECHI DELLE CENERI</h1>
+  <p id="overlayText">Un metroidvania soulslike 2D. Esplora tre regioni maledette, raccogli reliquie, potenzia il cavaliere e sconfiggi i guardiani.</p>
+  <button class="start" id="startBtn">ENTRA NELLE ROVINE</button>
+  <button class="start" id="continueBtn" style="display:none;background:#29251e">CONTINUA LA PARTITA</button>
+  <div class="hint">PROGETTATO PER TOUCHSCREEN · RUOTA IL TELEFONO IN ORIZZONTALE PER GIOCARE MEGLIO</div>
+ </div>
+</div>
+<div id="inventory" class="hidden">
+ <div class="panel">
+  <h1>ZAINO DEL CAVALIERE</h1>
+  <p>Spendi anime per migliorare il tuo equipaggiamento. I potenziamenti restano attivi nella run.</p>
+  <div class="grid">
+   <div class="item"><b>Spada del crepuscolo</b><p>Danno attacco: <span id="damageStat">1</span></p><button class="itemBtn" id="upgradeSword">POTENZIA · 120 ANIME</button></div>
+   <div class="item"><b>Armatura di cenere</b><p>Vita massima: <span id="healthStat">5</span></p><button class="itemBtn" id="upgradeArmor">POTENZIA · 150 ANIME</button></div>
+   <div class="item"><b>Fiala cremisi</b><p>Fiale rimaste: <span id="flaskStat">1</span></p><button class="itemBtn" id="buyFlask">ACQUISTA · 80 ANIME</button></div>
+   <div class="item"><b>Runa del passo</b><p>Velocità: <span id="speedStat">205</span></p><button class="itemBtn" id="upgradeSpeed">POTENZIA · 100 ANIME</button></div>
+  </div>
+  <button class="start" id="closeInventory">TORNA AL GIOCO</button>
+ </div>
+</div>
+<script>
+(()=> {
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const $=id=>document.getElementById(id);
+let W=innerWidth,H=innerHeight,DPR=1, last=0, t=0, cam=0, state='intro', msgT=0;
+const keys={left:false,right:false};
+const levels=[
+ {name:'I — ROVINE DI ELDRAEN',boss:'IL CUSTODE DELLE CENERI',bossHp:8,width:1750,bossX:1450,sky:['#090d18','#21151d'],platforms:[[350,52,120],[720,83,125],[1050,55,125]],relics:[300,760,1120]},
+ {name:'II — CATACOMBE SOMMERSE',boss:'LA VEDOVA DELLE OSSA',bossHp:11,width:1900,bossX:1580,sky:['#061419','#102a2c'],platforms:[[270,65,125],[590,100,120],[940,58,140],[1240,85,120]],relics:[250,650,1000,1280]},
+ {name:'III — TRONO SPEZZATO',boss:'IL RE SENZA VOLTO',bossHp:15,width:2100,bossX:1770,sky:['#160910','#321016'],platforms:[[320,65,130],[660,105,130],[990,65,150],[1300,100,140],[1510,60,100]],relics:[340,690,1020,1320,1540]}
+];
+let li=0,player,boss,relics,particles=[],souls=0,checkpoint=80,upgrades={damage:1,hp:5,flasks:1,speed:205},collected=[], bossPhase=0;
+function resize(){DPR=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;canvas.width=W*DPR;canvas.height=H*DPR;canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(DPR,0,0,DPR,0,0)}addEventListener('resize',resize);resize();
+function say(s){$('message').textContent=s;msgT=2.2}
+function startLevel(index){li=index;const L=levels[li];player={x:80,y:0,vx:0,vy:0,hp:upgrades.hp,maxHp:upgrades.hp,face:1,ground:true,attack:0,dodge:0,invuln:0,anim:0,flasks:upgrades.flasks};boss={x:L.bossX,y:0,hp:L.bossHp,maxHp:L.bossHp,cd:1.2,wind:0,stun:0,alive:true};relics=L.relics.map((x,i)=>({x,y:floorAt(x)+82,got:false,id:i}));particles=[];cam=0;checkpoint=80;bossPhase=0;$('levelTag').textContent=L.name;$('bossName').textContent=L.boss;$('bossUI').classList.remove('hidden');updateHud();state='play';$('overlay').classList.add('hidden');$('inventory').classList.add('hidden');say(L.name)}
+function floorAt(x){const ps=levels[li].platforms;for(const p of ps){if(x>p[0]&&x<p[0]+p[2])return p[1]}return 0}
+function updateHud(){$('hearts').innerHTML='';for(let i=0;i<player.maxHp;i++){let e=document.createElement('i');e.className='heart'+(i>=player.hp?' off':'');$('hearts').appendChild(e)}$('soulNum').textContent=souls;$('levelNum').textContent=li+1;$('bossFill').style.width=Math.max(0,boss.hp)/boss.maxHp*100+'%';$('damageStat').textContent=upgrades.damage;$('healthStat').textContent=upgrades.hp;$('flaskStat').textContent=player.flasks;$('speedStat').textContent=upgrades.speed}
+function jump(){if(state==='play'&&player.ground){player.vy=-470;player.ground=false}}
+function dodge(){if(state!=='play'||player.dodge>0)return;player.dodge=.35;player.invuln=.55;player.vx=player.face*470;burst(player.x,player.y+20,'#b16a42',9)}
+function attack(){if(state!=='play'||player.attack>0)return;player.attack=.3;burst(player.x+player.face*20,player.y+20,'#e5d8b0',3);if(boss.alive&&Math.abs(player.x+player.face*42-boss.x)<92&&Math.abs(player.y-boss.y)<115){boss.hp-=upgrades.damage;boss.stun=.2;boss.x+=player.face*18;burst(boss.x,boss.y+35,'#e64932',13);souls+=12;say('COLPO A SEGNO');if(boss.hp<=0){boss.alive=false;souls+=220+li*120;updateHud();saveGame();say('IL GUARDIANO È CADUTO');setTimeout(nextLevel,800)}updateHud();saveGame()}}
+function burst(x,y,c,n){for(let i=0;i<n;i++)particles.push({x,y,vx:(Math.random()-.5)*180,vy:(Math.random()-.6)*190,life:.25+Math.random()*.5,c,r:1+Math.random()*3})}
+function hurt(){if(player.invuln>0||state!=='play')return;player.hp--;player.invuln=.9;burst(player.x,player.y+25,'#d62b2b',12);updateHud();if(player.hp<=0){state='dead';souls=0;localStorage.removeItem('echiDelleCeneriSaveV1');$('overlayTitle').textContent='SEI CADUTO';$('overlayText').textContent='Le anime sono andate perdute. Il viaggio può ricominciare: i potenziamenti acquistati rimangono per questa sessione.';$('startBtn').textContent='RIPROVA';$('overlay').classList.remove('hidden')}}
+function nextLevel(){if(state!=='play')return;if(li<levels.length-1){souls+=150;startLevel(li+1);say('NUOVA REGIONE · +150 ANIME');saveGame()}else{state='win';localStorage.removeItem('echiDelleCeneriSaveV1');$('overlayTitle').textContent='IL TRONO È SPEZZATO';$('overlayText').textContent='Hai sconfitto i tre guardiani e attraversato le terre delle ceneri. Ma le rovine custodiscono ancora altri segreti.';$('startBtn').textContent='RICOMINCIA LA LEGGENDA';$('overlay').classList.remove('hidden')}}
+function openInv() {if(state!=='play')return;state='inventory';$('inventory').classList.remove('hidden');updateHud()}
+function buy(type,cost){if(souls<cost){say('ANIME INSUFFICIENTI');return}souls-=cost;if(type==='damage')upgrades.damage++;if(type==='hp'){upgrades.hp++;player.maxHp++;player.hp++;}if(type==='flask'){player.flasks++;upgrades.flasks=player.flasks}if(type==='speed')upgrades.speed+=25;updateHud();saveGame();say('EQUIPAGGIAMENTO MIGLIORATO')}
+function useFlask(){if(state!=='play'||player.flasks<=0||player.hp>=player.maxHp)return;player.flasks--;player.hp=Math.min(player.maxHp,player.hp+2);updateHud();saveGame();say('LA FIALA CURA LE FERITE');burst(player.x,player.y+25,'#c83d43',12)}
+let autosaveTimer=0; function update(dt){t+=dt;autosaveTimer+=dt;if(autosaveTimer>3&&state==='play'){autosaveTimer=0;saveGame()};if(msgT>0){msgT-=dt;if(msgT<=0)$('message').textContent=''}if(state!=='play')return;let speed=player.dodge>0?470:upgrades.speed;if(keys.left){player.vx=-speed;player.face=-1}else if(keys.right){player.vx=speed;player.face=1}else if(player.dodge<=0)player.vx*=Math.pow(.001,dt);player.x=Math.max(20,Math.min(levels[li].width-40,player.x+player.vx*dt));player.vy+=1050*dt;player.y+=player.vy*dt;let fy=floorAt(player.x);if(player.y<=fy){player.y=fy;player.vy=0;player.ground=true}else player.ground=false;player.attack=Math.max(0,player.attack-dt);player.dodge=Math.max(0,player.dodge-dt);player.invuln=Math.max(0,player.invuln-dt);player.anim+=dt*(Math.abs(player.vx)>30?12:3);
+relics.forEach(r=>{if(!r.got&&Math.abs(player.x-r.x)<32&&Math.abs(player.y+24-r.y)<85){r.got=true;souls+=100;updateHud();saveGame();say('RELIQUIA RACCOLTA · +100 ANIME');burst(r.x,r.y,'#e8b65b',16)}});
+if(boss.alive){let dx=player.x-boss.x;if(Math.abs(dx)<330&&Math.abs(dx)>68)boss.x+=Math.sign(dx)*Math.min((li===2?65:47)*dt,Math.abs(dx)-68);if(boss.stun>0)boss.stun-=dt;if(boss.wind>0){boss.wind-=dt;if(boss.wind<=0&&Math.abs(player.x-boss.x)<125&&Math.abs(player.y-boss.y)<115)hurt()}else if(Math.abs(dx)<130){boss.cd-=dt;if(boss.cd<=0){boss.wind=li===2?.35:.48;boss.cd=li===2?1.0:1.35;say('IL NEMICO PREPARA IL COLPO')}}}
+cam=Math.max(0,Math.min(levels[li].width-W,player.x-W*.42));particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=160*dt;p.life-=dt});particles=particles.filter(p=>p.life>0);if(player.y<-80)hurt()}
+function poly(a,fill,stroke){ctx.beginPath();ctx.moveTo(a[0][0],a[0][1]);a.slice(1).forEach(p=>ctx.lineTo(p[0],p[1]));ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.stroke()}}
+function drawKnight(x,base,s,big,face,wind){ctx.save();ctx.translate(x,base);ctx.scale(s,s);ctx.scale(face<0?-1:1,1);let red=big;ctx.fillStyle=red?'#51151b':'#351019';poly([[-9,-31],[-24,-22],[-13,0],[13,0],[10,-31]],ctx.fillStyle);ctx.fillStyle='#171a20';ctx.fillRect(-8,-14,6,14);ctx.fillRect(3,-14,6,14);ctx.fillStyle='#6e5940';ctx.fillRect(-10,-3,10,3);ctx.fillRect(2,-3,11,3);ctx.fillStyle=red?'#3b1719':'#252a32';ctx.strokeStyle=red?'#a34c38':'#ad9466';ctx.lineWidth=1.2;ctx.fillRect(-11,-39,22,27);ctx.strokeRect(-11,-39,22,27);ctx.fillStyle='#5b4c3d';ctx.fillRect(-8,-35,16,4);ctx.fillRect(-3,-33,6,14);ctx.fillStyle=red?'#4b171b':'#292d35';ctx.fillRect(-14,-34,5,19);ctx.fillRect(9,-34,5,19);ctx.fillStyle=red?'#302126':'#171a20';ctx.strokeStyle=red?'#b27a4d':'#c2a16a';ctx.beginPath();ctx.ellipse(0,-44,10,11,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle=red?'#ff3b29':'#d52b23';ctx.fillRect(-6,-46,12,2);ctx.save();ctx.translate(10,-24);if(wind)ctx.rotate(-.9);ctx.fillStyle='#bfc0ba';ctx.fillRect(0,-2,big?42:28,3);poly([[big?42:28,-2],[big?48:33,0],[big?42:28,1]],'#eee4c9');ctx.fillStyle='#9c7947';ctx.fillRect(-3,-4,4,8);ctx.restore();ctx.restore()}
+function draw(){ctx.clearRect(0,0,W,H);let L=levels[li],ground=H*.78,scale=Math.max(.72,Math.min(1.15,H/430));let g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,L.sky[0]);g.addColorStop(.62,L.sky[1]);g.addColorStop(1,'#08090d');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);ctx.globalAlpha=.32;ctx.fillStyle='#c9bea2';ctx.beginPath();ctx.arc(W*.73-cam*.025,H*.23,Math.min(W,H)*.075,0,7);ctx.fill();ctx.globalAlpha=1;
+for(let i=-2;i<25;i++){let x=((i*105-cam*.2)%(W+150)+(W+150))%(W+150)-45,h=80+(i*43%120+120)%120;ctx.fillStyle='#0a0c12';ctx.fillRect(x,ground-h,30,h);poly([[x-12,ground-h],[x+15,ground-h-27],[x+42,ground-h]],'#0a0c12')}
+poly([[0,ground-25],[W*.16,ground-115],[W*.29,ground-35],[W*.46,ground-145],[W*.65,ground-30],[W*.83,ground-100],[W,ground-20],[W,ground],[0,ground]],'#11121a');
+ctx.fillStyle='#29272a';ctx.fillRect(0,ground,W,H-ground);ctx.fillStyle='#796047';ctx.fillRect(0,ground,W,3);
+L.platforms.forEach(p=>{let x=p[0]-cam,y=ground-p[1]*scale;if(x>-170&&x<W+170){ctx.fillStyle='#3a3431';ctx.fillRect(x,y,p[2]*scale,10*scale);ctx.fillStyle='#96704a';ctx.fillRect(x,y,p[2]*scale,2)}});
+for(let i=0;i<W/46+2;i++){let x=((i*46-cam*.8)%(W+46)+(W+46))%(W+46);ctx.strokeStyle='#171719';ctx.beginPath();ctx.moveTo(x,ground+17);ctx.lineTo(x+7,ground+25);ctx.lineTo(x+3,ground+31);ctx.stroke()}
+let cp=checkpoint-cam;ctx.fillStyle='#38312a';ctx.fillRect(cp-12,ground-30,24,30);ctx.fillStyle='#ff7027';ctx.beginPath();ctx.ellipse(cp,ground-38,6,10+Math.sin(t*8)*2,0,0,7);ctx.fill();ctx.globalAlpha=.16;ctx.beginPath();ctx.arc(cp,ground-38,25,0,7);ctx.fillStyle='#ff6420';ctx.fill();ctx.globalAlpha=1;
+relics.forEach(r=>{if(r.got)return;let x=r.x-cam,y=ground-(r.y+Math.sin(t*3+r.x)*5)*scale;if(x<-30||x>W+30)return;ctx.save();ctx.translate(x,y);ctx.rotate(Math.sin(t*2)*.2);poly([[0,-12*scale],[8*scale,0],[0,12*scale],[-8*scale,0]],'#d9a74f','#ffe2a0');ctx.restore();ctx.globalAlpha=.18;ctx.beginPath();ctx.arc(x,y,18*scale,0,7);ctx.fillStyle='#ffbc4e';ctx.fill();ctx.globalAlpha=1});
+if(boss.alive){let x=boss.x-cam;if(x>-100&&x<W+100)drawKnight(x,ground-boss.y*scale,li===2?1.85*scale:1.55*scale,true,Math.sin(t*2)*.02,boss.wind>0)}
+drawKnight(player.x-cam,ground-player.y*scale,scale,false,player.face,player.attack>0);
+particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/.7);ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(p.x-cam,ground-p.y*scale,p.r,0,7);ctx.fill()});ctx.globalAlpha=1;let v=ctx.createRadialGradient(W/2,H/2,H*.2,W/2,H/2,H*.8);v.addColorStop(0,'#0000');v.addColorStop(1,'#0009');ctx.fillStyle=v;ctx.fillRect(0,0,W,H)}
+function frame(ts){let dt=Math.min(.033,(ts-last)/1000||0);last=ts;update(dt);draw();requestAnimationFrame(frame)}
+function hold(id,key){let e=$(id);let down=x=>{x.preventDefault();keys[key]=true},up=x=>{x.preventDefault();keys[key]=false};e.addEventListener('pointerdown',down);['pointerup','pointercancel','pointerleave'].forEach(n=>e.addEventListener(n,up))}
+hold('left','left');hold('right','right');$('jump').addEventListener('pointerdown',e=>{e.preventDefault();jump()});$('dodge').addEventListener('pointerdown',e=>{e.preventDefault();dodge()});$('attack').addEventListener('pointerdown',e=>{e.preventDefault();attack()});$('inventoryBtn').addEventListener('pointerdown',e=>{e.preventDefault();openInv()});
+function saveGame(){
+ try {
+  if(!player || !boss) return;
+  const data={li, souls, upgrades, player:{x:player.x,y:player.y,hp:player.hp,maxHp:player.maxHp,flasks:player.flasks}, boss:{x:boss.x,hp:boss.hp,alive:boss.alive}, relics:relics.map(r=>({x:r.x,y:r.y,got:r.got,id:r.id})), state:state};
+  localStorage.setItem('echiDelleCeneriSaveV1',JSON.stringify(data));
+  $('continueBtn').style.display='inline-block';
+ } catch(e) {}
+}
+function loadGame(){
+ try {
+  const raw=localStorage.getItem('echiDelleCeneriSaveV1');
+  if(!raw) return false;
+  const d=JSON.parse(raw);
+  if(!d || !Number.isInteger(d.li) || d.li<0 || d.li>=levels.length || !d.player || !d.boss) return false;
+  souls=Number(d.souls)||0;
+  upgrades=Object.assign({damage:1,hp:5,flasks:1,speed:205},d.upgrades||{});
+  startLevel(d.li);
+  player.x=Number(d.player.x)||80; player.y=Math.max(0,Number(d.player.y)||0);
+  player.hp=Math.max(1,Math.min(player.maxHp,Number(d.player.hp)||player.maxHp));
+  player.flasks=Math.max(0,Number(d.player.flasks)||0);
+  boss.x=Number(d.boss.x)||levels[li].bossX;
+  boss.hp=Math.max(1,Math.min(boss.maxHp,Number(d.boss.hp)||boss.maxHp));
+  boss.alive=d.boss.alive!==false;
+  if(!boss.alive) boss.hp=0;
+  if(Array.isArray(d.relics)) relics.forEach((r,i)=>{if(d.relics[i]) r.got=!!d.relics[i].got});
+  updateHud(); state='play'; $('overlay').classList.add('hidden');
+  say('PARTITA RIPRISTINATA'); return true;
+ } catch(e) { return false; }
+}
+$('startBtn').onclick=()=>{souls=0;upgrades={damage:1,hp:5,flasks:1,speed:205};localStorage.removeItem('echiDelleCeneriSaveV1');startLevel(0);$('overlayTitle').textContent='ECHI DELLE CENERI';$('startBtn').textContent='ENTRA NELLE ROVINE';saveGame()};
+$('continueBtn').onclick=()=>{if(!loadGame()) say('NESSUN SALVATAGGIO VALIDO')};
+$('closeInventory').onclick=()=>{$('inventory').classList.add('hidden');state='play';updateHud()};
+$('upgradeSword').onclick=()=>buy('damage',120);$('upgradeArmor').onclick=()=>buy('hp',150);$('buyFlask').onclick=()=>buy('flask',80);$('upgradeSpeed').onclick=()=>buy('speed',100);
+$('inventory').addEventListener('pointerdown',e=>{if(e.target===$('inventory')){$('inventory').classList.add('hidden');state='play'}});
+$('message').addEventListener('dblclick',useFlask);
+addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='a')keys.left=true;if(e.key==='ArrowRight'||e.key==='d')keys.right=true;if(e.key===' '||e.key==='ArrowUp')jump();if(e.key==='j')attack();if(e.key==='k')dodge();if(e.key==='i')openInv();if(e.key==='h')useFlask()});addEventListener('keyup',e=>{if(e.key==='ArrowLeft'||e.key==='a')keys.left=false;if(e.key==='ArrowRight'||e.key==='d')keys.right=false});
+try { if(localStorage.getItem('echiDelleCeneriSaveV1')) $('continueBtn').style.display='inline-block'; } catch(e) {}
+if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost')) {
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

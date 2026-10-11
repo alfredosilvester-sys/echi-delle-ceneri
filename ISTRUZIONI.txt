@@ -1,0 +1,32 @@
+ECHI DELLE CENERI — PWA per iPhone
+
+FILE INCLUSI
+- index.html: gioco
+- manifest.webmanifest: nome, icone e modalità installata
+- service-worker.js: cache per uso offline dopo il primo caricamento
+- icons/: icone PWA e Apple Touch Icon
+
+SALVATAGGI
+Il gioco salva automaticamente la progressione di base in localStorage sul dispositivo. I dati restano sul browser/dispositivo e non vengono sincronizzati tra dispositivi. Se cancelli i dati del sito, puoi perdere il salvataggio.
+
+COME PUBBLICARLO GRATIS CON GITHUB PAGES
+1. Sul telefono o computer, crea/accedi a un account GitHub.
+2. Crea un nuovo repository pubblico, per esempio echi-delle-ceneri.
+3. Carica tutti i file e la cartella icons mantenendo esattamente la struttura di questo archivio.
+4. In Settings > Pages, scegli “Deploy from a branch”, seleziona “main” e “/(root)”, poi salva.
+5. Attendi che GitHub Pages mostri l'URL HTTPS del sito. Il primo deploy può richiedere alcuni minuti.
+6. Apri quell'URL in Safari su iPhone. Attendi che il gioco si carichi una volta mentre sei online.
+
+AGGIUNGERLO ALLA SCHERMATA HOME
+1. In Safari, apri l'URL HTTPS pubblicato.
+2. Tocca Condividi (quadrato con freccia verso l'alto).
+3. Scorri e seleziona “Aggiungi alla schermata Home”.
+4. Se appare l'opzione, abilita “Apri come app web”.
+5. Tocca “Aggiungi”. L'icona del cavaliere comparirà sulla Home.
+6. Avvia l'icona una volta online; dopo il primo caricamento, la cache consente l'avvio offline per i file già memorizzati.
+
+NOTE
+- Per l'installazione PWA su iPhone serve un URL HTTPS; aprire il file HTML direttamente dall'app File non attiva service worker e installazione web.
+- I salvataggi sono locali al browser/app web. Non disinstallare/cancellare i dati del sito se vuoi conservarli.
+- Per cambiare versione dopo un aggiornamento, pubblica i file aggiornati e ricarica l'app. Il service worker può aggiornare la cache alla visita successiva.
+- Questo è un gioco web installabile, non un file IPA nativo e non viene pubblicato automaticamente sull'App Store.
