@@ -1,0 +1,2 @@
+// Swift source is intended to be added to a native iOS App project in Xcode.
+// See README.md for the short setup guide.
